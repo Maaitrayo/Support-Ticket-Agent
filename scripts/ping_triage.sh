@@ -27,4 +27,9 @@ print "How-To question" \
 print "New-Issue" \
 '{"description": "The app switches from dark mode to light mode randomly after a few minutes."}'
 
+print "New-Issue" \
+'{
+  "description": "The application unexpectedly switches from dark mode to light mode after a few minutes of use. This behavior appears to happen at random intervals and does not require any interaction from the user. The issue occurs even when dark mode has been explicitly selected in the settings. It affects usability at night or in low-light environments, causing sudden screen brightness changes that may strain the eyes. The problem persists across multiple sessions, and restarting the app does not prevent it from happening again."
+}'
+
 echo -e "\n---- Test Complete ----"

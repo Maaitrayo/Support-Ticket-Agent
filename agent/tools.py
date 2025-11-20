@@ -1,10 +1,13 @@
-# agent/tools.py
+# @Maaitrayo Das, 19 Nov 2025
+
 import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+import numpy as np
+from openai import OpenAI
 
-from .llm_client import LLMClientMock
+from .llm_client import LLMClientMock, LLMClient
 
 
 def _get_kb_path() -> Path:
@@ -22,7 +25,10 @@ def load_kb() -> List[Dict[str, Any]]:
 
 
 KB_ENTRIES: List[Dict[str, Any]] = load_kb()
-llm_client = LLMClientMock()
+if os.getenv("MOCK_LLM", "true").lower() in ("1", "true", "yes"):
+    llm_client = LLMClientMock()
+else:
+    llm_client = LLMClient()
 
 
 def classify_ticket(description: str) -> Dict[str, str]:
@@ -44,7 +50,7 @@ def _tokenize(text: str) -> List[str]:
     return [t for t in re.split(r"[^a-z0-9]+", text.lower()) if t]
 
 
-def search_kb(query: str, top_n: int = 3) -> List[Dict[str, Any]]:
+def search_kb_mock(query: str, top_n: int = 3) -> List[Dict[str, Any]]:
     """
     Very simple keyword-based similarity search over KB.
     Scores by overlapping tokens between query and (title + symptoms).
@@ -77,6 +83,52 @@ def search_kb(query: str, top_n: int = 3) -> List[Dict[str, Any]]:
 
     return top_entries
 
+# -----------------
+# KB Embedding-based search
+# -----------------
+
+client = OpenAI()
+EMB_MODEL = "text-embedding-3-small"
+
+def load_kb_index():
+    path = Path(__file__).resolve().parents[1] / "kb" / "kb_index_embeddings.json"
+    with path.open("r") as f:
+        return json.load(f)
+
+KB_EMB_INDEX = None
+
+def get_kb_index():
+    global KB_EMB_INDEX
+    if KB_EMB_INDEX is None:
+        KB_EMB_INDEX = load_kb_index()
+    return KB_EMB_INDEX
+
+def embed_query(query: str) -> list:
+    return client.embeddings.create(model=EMB_MODEL, input=query).data[0].embedding
+
+def cosine(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+def search_kb_embeddings(query: str, top_n: int = 3):
+    q_emb = embed_query(query)
+    scored = []
+    
+    kb_index = get_kb_index()
+
+    for item in kb_index:
+        score = cosine(np.array(q_emb), np.array(item["embedding"]))
+        kb_entry = next(e for e in KB_ENTRIES if e["id"] == item["id"])
+        scored.append((float(score), kb_entry))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    top = []
+    for score, entry in scored[:top_n]:
+        e = dict(entry)
+        e["match_score"] = round(score, 3)
+        top.append(e)
+
+    return top
 
 def decide_next_action(
     ticket_meta: Dict[str, str], kb_matches: List[Dict[str, Any]]
