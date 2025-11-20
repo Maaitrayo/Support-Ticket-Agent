@@ -1,23 +1,21 @@
-# @Maaitrayo Das, 19 Nov 2025
-
 from typing import Any, Dict, List
 
 from .tools import classify_ticket, search_kb_mock, search_kb_embeddings, decide_next_action
 from app.config import settings
 
 
-def triage_ticket(description: str) -> Dict[str, Any]:
+async def triage_ticket(description: str) -> Dict[str, Any]:
     """
     Main agent orchestration:
     1. Classify ticket (summary, category, severity)
     2. Search KB for related issues
     3. Decide known/new issue and next action
     """
-    ticket_meta = classify_ticket(description)
+    ticket_meta = await classify_ticket(description)
     if settings.MOCK_LLM in ("1", "true", "yes"):
-        kb_matches = search_kb_mock(description, top_n=3)
+        kb_matches = await search_kb_mock(description, top_n=3)
     else:
-        kb_matches = search_kb_embeddings(description, top_n=3)
+        kb_matches = await search_kb_embeddings(description, top_n=3)
     known_issue, next_action = decide_next_action(ticket_meta, kb_matches)
 
     # Only expose a subset of KB fields externally

@@ -1,12 +1,9 @@
-# @Maaitrayo Das, 19 Nov 2025
-
 import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 import numpy as np
-from openai import OpenAI
-
+from openai import AsyncOpenAI
 from .llm_client import LLMClientMock, LLMClient
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from openai import OpenAIError
@@ -33,11 +30,11 @@ else:
     llm_client = LLMClient()
 
 
-def classify_ticket(description: str) -> Dict[str, str]:
+async def classify_ticket(description: str) -> Dict[str, str]:
     """
     Use LLM (mock / real) to extract summary, category, severity.
     """
-    return llm_client.classify_ticket(description)
+    return await llm_client.classify_ticket(description)
 
 
 def _tokenize(text: str) -> List[str]:
@@ -52,7 +49,7 @@ def _tokenize(text: str) -> List[str]:
     return [t for t in re.split(r"[^a-z0-9]+", text.lower()) if t]
 
 
-def search_kb_mock(query: str, top_n: int = 3) -> List[Dict[str, Any]]:
+async def search_kb_mock(query: str, top_n: int = 3) -> List[Dict[str, Any]]:
     """
     Very simple keyword-based similarity search over KB.
     Scores by overlapping tokens between query and (title + symptoms).
@@ -63,6 +60,10 @@ def search_kb_mock(query: str, top_n: int = 3) -> List[Dict[str, Any]]:
         overlap = query_tokens & entry_tokens = {"checkout", "error", "500", "on", "mobile"}
         score = len(overlap) / len(entry_tokens) = 5 / 6 ~ 0.83
     """
+    # Mock search is CPU bound, but we make it async to match interface if needed,
+    # or just keep it sync and wrap it? 
+    # For consistency with embeddings search, let's make it async.
+    
     query_tokens = set(_tokenize(query))
     scored: List[Tuple[float, Dict[str, Any]]] = []
 
@@ -89,7 +90,7 @@ def search_kb_mock(query: str, top_n: int = 3) -> List[Dict[str, Any]]:
 # KB Embedding-based search
 # -----------------
 
-client = OpenAI()
+client = AsyncOpenAI()
 EMB_MODEL = "text-embedding-3-small"
 
 def load_kb_index():
@@ -110,9 +111,10 @@ def get_kb_index():
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type(OpenAIError)
 )
-def embed_query(query: str) -> list:
+async def embed_query(query: str) -> list:
     try:
-        return client.embeddings.create(model=EMB_MODEL, input=query).data[0].embedding
+        resp = await client.embeddings.create(model=EMB_MODEL, input=query)
+        return resp.data[0].embedding
     except OpenAIError as e:
         print(f"OpenAI API Error during embedding: {e}")
         raise e
@@ -120,8 +122,8 @@ def embed_query(query: str) -> list:
 def cosine(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
-def search_kb_embeddings(query: str, top_n: int = 3):
-    q_emb = embed_query(query)
+async def search_kb_embeddings(query: str, top_n: int = 3):
+    q_emb = await embed_query(query)
     scored = []
     
     kb_index = get_kb_index()
