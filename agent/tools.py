@@ -8,6 +8,8 @@ import numpy as np
 from openai import OpenAI
 
 from .llm_client import LLMClientMock, LLMClient
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from openai import OpenAIError
 
 
 def _get_kb_path() -> Path:
@@ -103,8 +105,17 @@ def get_kb_index():
         KB_EMB_INDEX = load_kb_index()
     return KB_EMB_INDEX
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(OpenAIError)
+)
 def embed_query(query: str) -> list:
-    return client.embeddings.create(model=EMB_MODEL, input=query).data[0].embedding
+    try:
+        return client.embeddings.create(model=EMB_MODEL, input=query).data[0].embedding
+    except OpenAIError as e:
+        print(f"OpenAI API Error during embedding: {e}")
+        raise e
 
 def cosine(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))

@@ -5,7 +5,8 @@ from typing import Dict
 from dotenv import load_dotenv
 from openai import OpenAI
 import json
-
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from openai import OpenAIError
 
 load_dotenv()
 
@@ -93,6 +94,12 @@ class LLMClient:
     def classify_ticket(self, description: str) -> Dict[str, str]:
         return self._openai_classify(description)
     
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(OpenAIError)
+    )
     def _openai_classify(self, description: str) -> Dict[str, str]:
 
         system_message = (
@@ -111,21 +118,23 @@ class LLMClient:
         - severity: one of ["Low", "Medium", "High", "Critical"]
         """
 
-        resp = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=0.0,
-            response_format={"type": "json_object"},
-        )
-
-        content = resp.choices[0].message.content
-
         try:
+            resp = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=0.0,
+                response_format={"type": "json_object"},
+            )
+
+            content = resp.choices[0].message.content
             result = json.loads(content)
             return result
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+            raise e
         except Exception as e:
-            print("Failed to parse LLM response, using mock fallback. Error:", e)
+            print("Failed to parse LLM response or other error, using mock fallback. Error:", e)
             return LLMClientMock()._mock_classify(description)

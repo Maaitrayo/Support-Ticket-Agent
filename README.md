@@ -9,6 +9,26 @@ An AI-powered agent designed to triage support tickets by understanding the tick
 -   **Action Recommendation**: Decides whether a ticket is a known issue or a new one and suggests the appropriate next step for support staff.
 -   **REST API**: Provides a simple `/triage` endpoint for integration.
 
+## Agent Design
+
+### How the LLM is used
+The agent leverages the LLM (or a deterministic mock) for two main purposes:
+1.  **Classification**: The raw ticket description is processed to extract structured metadata: a concise **summary**, a broad **category** (e.g., Login, Billing), and a **severity** level.
+2.  **Semantic Search**: In "Real Mode", the LLM generates vector embeddings for the ticket description, enabling the system to find semantically similar past issues in the Knowledge Base, even if the keywords don't match exactly.
+
+### Tool Execution & KB Search
+The `orchestrator.py` manages the flow:
+1.  **Classify**: The ticket is first classified to understand its nature.
+2.  **Search**: The agent searches the KB.
+    -   *Mock Mode*: Uses token overlap (Jaccard similarity) to find matches.
+    -   *Real Mode*: Uses Cosine similarity on vector embeddings.
+3.  **Decide**: A heuristic-based decision engine (`decide_next_action`) compares the ticket against the search results. If a high-confidence match is found (> 0.3 score), it links the known issue. Otherwise, it uses the category and severity to propose a sensible default action (e.g., "Escalate to Engineering").
+
+### Trade-offs
+-   **Vector DB**: For simplicity and portability, this project uses in-memory NumPy arrays for vector search instead of a dedicated Vector Database (like Pinecone or Qdrant). This is sufficient for small datasets but would need scaling for production.
+-   **Context Window**: The agent is currently stateless per request. It does not maintain a conversation history, which simplifies the architecture but limits the ability to ask follow-up questions dynamically.
+-   **Mock Mode**: To facilitate rapid development and testing without incurring API costs, a robust "Mock Mode" was implemented. It trades off the semantic understanding of an LLM for deterministic, keyword-based logic.
+
 ## Project Structure
 
 ```
