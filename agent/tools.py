@@ -10,7 +10,7 @@ from openai import OpenAI
 from .llm_client import LLMClientMock, LLMClient
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from openai import OpenAIError
-
+from app.config import settings
 
 def _get_kb_path() -> Path:
     env_path = os.getenv("KB_PATH")
@@ -154,7 +154,7 @@ def decide_next_action(
     summary = ticket_meta["summary"]
 
     top_score = kb_matches[0]["match_score"] if kb_matches else 0.0
-    known_issue = top_score >= 0.3 and bool(kb_matches)
+    known_issue = top_score >= settings.QUERY_MATCH_CONFIDENCE_THRESHOLD and bool(kb_matches)
 
     if known_issue:
         top_issue = kb_matches[0]

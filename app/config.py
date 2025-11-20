@@ -8,7 +8,9 @@ class Settings:
     KB_PATH: str = os.getenv("KB_PATH", "")
     
     # Rate Limiting
-    RATE_LIMIT_REQUESTS: int = 10
-    RATE_LIMIT_WINDOW_SECONDS: int = 60
+    RATE_LIMIT_REQUESTS: int = int(os.getenv("RATE_LIMIT_REQUESTS", "5"))
+    RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "30"))
+    
+    QUERY_MATCH_CONFIDENCE_THRESHOLD: float = float(os.getenv("QUERY_MATCH_CONFIDENCE_THRESHOLD", "0.5"))
 
 settings = Settings()

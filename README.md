@@ -90,6 +90,9 @@ The `orchestrator.py` manages the flow:
         -   `true`: Uses **Mock Mode**. Relies on simple keyword matching and deterministic logic ("maths logic"). No API costs.
         -   `false`: Uses **Real Mode**. Uses OpenAI's LLM for classification and semantic search (Embeddings). Requires `OPENAI_API_KEY`.
     -   `KB_PATH`: (Optional) Path to your custom KB JSON file.
+    -   `ENV`: Set to `dev` (default) or `prod`.
+    -   `RATE_LIMIT_REQUESTS`: Number of requests allowed per window (default: 10).
+    -   `RATE_LIMIT_WINDOW_SECONDS`: Time window for rate limiting in seconds (default: 60).
 
 ## Usage
 
@@ -102,6 +105,12 @@ uvicorn app.main:app --reload
 ```
 
 The server will start at `http://127.0.0.1:8000`.
+
+### Web UI
+
+A simple web interface is available for testing the agent:
+-   **URL**: [http://127.0.0.1:8000/ui](http://127.0.0.1:8000/ui)
+-   Enter a ticket description and click "Triage Ticket" to see the result.
 
 ### Embeddings Generation
 
@@ -167,3 +176,22 @@ Run the test suite using `pytest`:
 ```bash
 pytest
 ```
+
+## Visual Results
+
+### Known Issue Detection
+![Known Issue Detection](results/known_issue_test.png)
+*The agent correctly identifies a known issue from the Knowledge Base.*
+
+### Unknown Issue (Long Description)
+![Unknown Issue Long](results/big_desc_uk_issue_test.png)
+*Handling of a detailed ticket that doesn't match any known issues.*
+
+### Unknown Issue (Short Description)
+![Unknown Issue Short](results/small_desc_u_issue_test.png)
+*Processing a brief, ambiguous ticket classified as a new issue.*
+
+### Rate Limiting
+![Rate Limiting 1](results/rate_limit_test_1.png)
+![Rate Limiting 2](results/rate_limit_test_2.png)
+*Demonstration of the rate limiting mechanism rejecting requests when the limit is exceeded.*
