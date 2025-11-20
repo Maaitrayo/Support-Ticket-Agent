@@ -1,0 +1,72 @@
+[
+  {
+    "id": "ISSUE-101",
+    "title": "Checkout error 500 on mobile",
+    "category": "Bug",
+    "symptoms": ["500 error", "mobile", "checkout", "payment"],
+    "recommended_action": "Escalate to payments/backend team; reference incident INC-2023-09-10."
+  },
+  {
+    "id": "ISSUE-102",
+    "title": "Cannot login with correct password",
+    "category": "Login",
+    "symptoms": ["login", "authentication", "password", "invalid credentials"],
+    "recommended_action": "Ask user to reset password; check auth-service logs for the user ID."
+  },
+  {
+    "id": "ISSUE-103",
+    "title": "Billing double charge",
+    "category": "Billing",
+    "symptoms": ["double charge", "duplicate payment", "refund", "billing"],
+    "recommended_action": "Create refund ticket; verify in payment provider dashboard."
+  },
+  {
+    "id": "ISSUE-104",
+    "title": "Slow dashboard load time",
+    "category": "Performance",
+    "symptoms": ["slow", "performance", "dashboard", "loading"],
+    "recommended_action": "Check APM metrics; escalate to frontend and backend performance teams."
+  },
+  {
+    "id": "ISSUE-105",
+    "title": "Email verification not received",
+    "category": "Email",
+    "symptoms": ["verification email", "not received", "signup", "activation"],
+    "recommended_action": "Ask user to check spam; verify in email provider logs."
+  },
+  {
+    "id": "ISSUE-106",
+    "title": "Mobile app crashes on startup",
+    "category": "Bug",
+    "symptoms": ["crash", "startup", "mobile app", "android", "ios"],
+    "recommended_action": "Ask for app version and OS; escalate to mobile team."
+  },
+  {
+    "id": "ISSUE-107",
+    "title": "Unable to reset password",
+    "category": "Login",
+    "symptoms": ["reset password", "forgot password", "reset link", "expired"],
+    "recommended_action": "Send manual reset link; check token expiry configuration."
+  },
+  {
+    "id": "ISSUE-108",
+    "title": "Export to CSV results in corrupted file",
+    "category": "Bug",
+    "symptoms": ["csv", "export", "download", "corrupted"],
+    "recommended_action": "Escalate to reporting team; attach sample corrupted file."
+  },
+  {
+    "id": "ISSUE-109",
+    "title": "API rate limit exceeded errors",
+    "category": "API",
+    "symptoms": ["rate limit", "429", "too many requests", "api"],
+    "recommended_action": "Ask user to back off/retry; evaluate if higher plan limits are needed."
+  },
+  {
+    "id": "ISSUE-110",
+    "title": "How to invite team members",
+    "category": "Question",
+    "symptoms": ["invite", "team members", "add user", "collaboration"],
+    "recommended_action": "Send help center article on team invitations."
+  }
+]
