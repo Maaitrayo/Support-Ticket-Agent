@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Ticket Triage</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        textarea { width: 100%; height: 150px; margin-bottom: 1rem; padding: 0.5rem; }
+        button { padding: 0.5rem 1rem; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 2rem; white-space: pre-wrap; background: #f4f4f4; padding: 1rem; border-radius: 4px; display: none; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Support Ticket Triage Agent</h1>
+    <p>Enter a ticket description below to see the AI triage result.</p>
+    
+    <textarea id="description" placeholder="e.g., I cannot login to my account..."></textarea>
+    <button onclick="triage()">Triage Ticket</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function triage() {
+            const desc = document.getElementById('description').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!desc.trim()) {
+                alert("Please enter a description");
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = "Processing...";
+            resultDiv.className = "";
+
+            try {
+                const response = await fetch('/triage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: desc })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || "An error occurred");
+                }
+
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                resultDiv.textContent = "Error: " + e.message;
+                resultDiv.className = "error";
+            }
+        }
+    </script>
+</body>
+</html>

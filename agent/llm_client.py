@@ -2,7 +2,13 @@
 
 import os
 from typing import Dict
+from dotenv import load_dotenv
+from openai import OpenAI
+import json
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from openai import OpenAIError
 
+load_dotenv()
 
 class LLMClientMock:
     """
@@ -67,3 +73,68 @@ class LLMClientMock:
             "category": category,
             "severity": severity,
         }
+
+
+class LLMClient:
+    """
+    Wrapper for OpenAI + fallback mock
+    """
+
+    def __init__(self):
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.model_name = os.getenv("MODEL_NAME", "gpt-4o-mini")
+        self.client = None
+
+        if self.api_key:
+            self.client = OpenAI(api_key=self.api_key)
+            self.use_mock = False
+        else:
+            self.use_mock = True
+
+    def classify_ticket(self, description: str) -> Dict[str, str]:
+        return self._openai_classify(description)
+    
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(OpenAIError)
+    )
+    def _openai_classify(self, description: str) -> Dict[str, str]:
+
+        system_message = (
+            "You are a support ticket triage assistant. "
+            "You MUST respond with a single JSON object only, no explanation, no markdown."
+        )
+
+        user_message = f"""
+        Extract the following information from the support ticket.
+
+        Ticket: "{description}"
+
+        Return ONLY a JSON object with exactly these keys:
+        - summary: string, 1 sentence summary
+        - category: one of ["Billing", "Login", "Performance", "Bug", "Question/How-To", "Other"]
+        - severity: one of ["Low", "Medium", "High", "Critical"]
+        """
+
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=0.0,
+                response_format={"type": "json_object"},
+            )
+
+            content = resp.choices[0].message.content
+            result = json.loads(content)
+            return result
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+            raise e
+        except Exception as e:
+            print("Failed to parse LLM response or other error, using mock fallback. Error:", e)
+            return LLMClientMock()._mock_classify(description)
