@@ -1,12 +1,11 @@
-# @Maaitrayo Das, 19 Nov 2025
-
 import os
 from typing import Dict
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import AsyncOpenAI
 import json
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from openai import OpenAIError
+import asyncio
 
 load_dotenv()
 
@@ -19,7 +18,7 @@ class LLMClientMock:
     def __init__(self) -> None:
         self.use_mock = os.getenv("USE_MOCK_LLM", "true").lower() == "true"
 
-    def classify_ticket(self, description: str) -> Dict[str, str]:
+    async def classify_ticket(self, description: str) -> Dict[str, str]:
         """
         Return a dict with:
         {
@@ -29,14 +28,18 @@ class LLMClientMock:
         }
         """
         if self.use_mock:
-            return self._mock_classify(description)
+            return await self._mock_classify(description)
         else:
-            return self._mock_classify(description)
+            return await self._mock_classify(description)
 
-    def _mock_classify(self, description: str) -> Dict[str, str]:
+    async def _mock_classify(self, description: str) -> Dict[str, str]:
         """
         Simple rule-based classification and summary generation.
         """
+        # Simulate small network delay for realism in mock mode if desired, 
+        # but for now we just keep it fast or add a tiny sleep.
+        # await asyncio.sleep(0.1) 
+        
         text = description.lower()
 
         # Summary: first sentence or first ~120 chars
@@ -86,13 +89,13 @@ class LLMClient:
         self.client = None
 
         if self.api_key:
-            self.client = OpenAI(api_key=self.api_key)
+            self.client = AsyncOpenAI(api_key=self.api_key)
             self.use_mock = False
         else:
             self.use_mock = True
 
-    def classify_ticket(self, description: str) -> Dict[str, str]:
-        return self._openai_classify(description)
+    async def classify_ticket(self, description: str) -> Dict[str, str]:
+        return await self._openai_classify(description)
     
 
     @retry(
@@ -100,7 +103,7 @@ class LLMClient:
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type(OpenAIError)
     )
-    def _openai_classify(self, description: str) -> Dict[str, str]:
+    async def _openai_classify(self, description: str) -> Dict[str, str]:
 
         system_message = (
             "You are a support ticket triage assistant. "
@@ -119,7 +122,7 @@ class LLMClient:
         """
 
         try:
-            resp = self.client.chat.completions.create(
+            resp = await self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": system_message},
@@ -137,4 +140,4 @@ class LLMClient:
             raise e
         except Exception as e:
             print("Failed to parse LLM response or other error, using mock fallback. Error:", e)
-            return LLMClientMock()._mock_classify(description)
+            return await LLMClientMock()._mock_classify(description)

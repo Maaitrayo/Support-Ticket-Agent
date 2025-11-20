@@ -1,5 +1,3 @@
-# @Maaitrayo Das, 19 Nov 2025
-
 from contextlib import asynccontextmanager
 import os
 from fastapi import FastAPI, HTTPException, Request, status
@@ -58,10 +56,10 @@ async def root():
 
 
 @app.post("/triage", response_model=TriageResponse)
-def triage_endpoint(payload: TriageRequest):
+async def triage_endpoint(payload: TriageRequest):
     description = payload.description.strip()
     if not description:
         raise HTTPException(status_code=400, detail="Description must not be empty.")
 
-    result = triage_ticket(description)
+    result = await triage_ticket(description)
     return TriageResponse(**result)

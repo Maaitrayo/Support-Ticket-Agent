@@ -195,3 +195,7 @@ pytest
 ![Rate Limiting 1](results/rate_limit_test_1.png)
 ![Rate Limiting 2](results/rate_limit_test_2.png)
 *Demonstration of the rate limiting mechanism rejecting requests when the limit is exceeded.*
+
+### Async VS Sync Performance
+![Async VS Sync Performance](results/async_vs_sync_performance.png)
+*Benchmarking the performance difference between asynchronous and synchronous API calls.*
